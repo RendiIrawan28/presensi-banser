@@ -1,0 +1,15 @@
+# Runtime database and journal files MUST NOT be committed.
+data/*.sqlite
+data/*.sqlite-*
+data/*.db
+data/*.db-*
+private/config.php
+storage/*
+!storage/.gitkeep
+references/
+*.log
+*.bak
+*.sqlite
+.env
+*.zip
+.DS_Store

@@ -1,0 +1,26 @@
+/* PKD V7 extension; preserves the original home, scanner and printed documents. */
+.v7bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:13px 15px;background:var(--sf);border:1px solid var(--ln);border-radius:16px;margin:12px 0 16px}
+.v7bar select{width:auto;max-width:350px;flex:1;margin:0;min-width:150px;min-height:38px;padding:8px 12px;font-size:12px}
+.v7bar strong{font-size:12px}
+.v7-nav{display:flex;gap:7px;overflow-x:auto;padding:5px 0 11px;scrollbar-width:thin}
+.v7-nav button{border:1px solid var(--ln);border-radius:14px;white-space:nowrap;background:var(--sf);color:var(--ink);padding:10px 13px;font-weight:700;font-size:12px}
+.v7-nav button.on{background:var(--g);color:#fff;border-color:var(--g)}
+.v7-panel{border:1px solid var(--ln);border-radius:20px;padding:16px;background:var(--sf);margin-bottom:18px;min-height:170px}
+.v7-panel h2{font-size:19px;letter-spacing:-.025em;margin:0 0 13px}
+.v7-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.v7-kpi{padding:14px 16px;background:var(--sf2);border:1px solid var(--ln);border-radius:16px}
+.v7-kpi strong{display:block;font-size:22px;margin:3px 0;color:var(--g)}
+.v7-kpi small{color:var(--mut)}
+.v7-field{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:12px 0}
+.v7-field>*{flex:1;min-width:130px}
+.v7-field label{display:block;margin:2px 0 5px;font-size:11px}
+.v7-field input,.v7-field select{min-height:43px;font-size:13px}
+.v7-muted{color:var(--mut);font-size:12px}
+.v7-list{display:grid;gap:8px}
+.v7-item{padding:13px;border:1px solid var(--ln);border-radius:13px;background:var(--sf2);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.v7-item b{font-size:13px}.v7-item small{display:block;color:var(--mut);font-size:11px}
+.v7-item button{padding:9px 12px}
+.v7-out{white-space:pre-wrap;word-break:break-word;font-size:12px;padding:12px;border-radius:13px;background:var(--sf2);border:1px solid var(--ln);max-height:320px;overflow:auto}
+.v7-danger{color:var(--er)}.v7-right{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.v7-action{margin:10px 0}.v7-hidden{display:none!important}
+@media(min-width:700px){#vV7{max-width:1230px}.v7-panel{padding:24px}}

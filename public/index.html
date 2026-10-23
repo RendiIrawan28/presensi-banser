@@ -6,7 +6,8 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <title>Absensi Kegiatan | Dashboard Kehadiran</title>
+    <title>Absensi PKD V7 | Dashboard Kehadiran</title>
+    <link rel="stylesheet" href="v7.css" />
     <meta name="theme-color" content="#104c41" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link
@@ -1380,6 +1381,7 @@ button:active {transform:scale(.975)}
       </div>
     </div>
 
+    <div class="view" id="vV7"></div>
     <div class="view" id="vCert"></div>
     <div class="view" id="vRun"></div>
 
@@ -1571,6 +1573,7 @@ button:active {transform:scale(.975)}
           cloudError = false;
           document.getElementById('abLogin').classList.remove('on');
           render();
+          if (window.v7Init) await window.v7Init();
           toast('Terhubung ke VPS');
         } catch (e) {
           cloudReady = false;
@@ -1595,6 +1598,7 @@ button:active {transform:scale(.975)}
         finally { b.disabled = false; b.textContent = 'Masuk ke aplikasi'; }
       };
       function save() {
+        if (window.pk7Mode && window.pk7Role !== 'admin') { toast('Perubahan data ini hanya untuk Admin.'); return false; }
         if(CLOUD){
           if(!cloudReady){toast('Belum terhubung ke VPS; perubahan tidak disimpan');return false;}
           cloudPending=true; flushCloud(); return true;
@@ -1824,7 +1828,8 @@ button:active {transform:scale(.975)}
           beep(200, 0.4);
           return;
         }
-        const p = S.people.find((x) => x.id.toUpperCase() === c);
+        const mapped = (S.aliases && S.aliases[c]) || c;
+        const p = S.people.find((x) => x.id.toUpperCase() === mapped.toUpperCase());
         if (!p) {
           showRes(
             "er",
@@ -2079,6 +2084,7 @@ button:active {transform:scale(.975)}
           };
         };
         $("#pd").onclick = async () => {
+          if (window.pk7Mode) { toast("Hapus peserta di V7 dinonaktifkan agar data kehadiran dan nilai tetap aman."); return; }
           if (await ask("Hapus " + p.name + " beserta data kehadirannya?")) {
             S.people = S.people.filter((x) => x.id !== id);
             S.logs = S.logs.filter((l) => l.pid !== id);
@@ -2111,6 +2117,7 @@ button:active {transform:scale(.975)}
         return n;
       }
       async function delS(id) {
+        if (window.pk7Mode) { toast("Penghapusan sesi lama dinonaktifkan demi keamanan data; gunakan kegiatan arsip atau laporkan ke admin."); return; }
         if (await ask("Hapus sesi ini beserta data kehadirannya?")) {
           S.sessions = S.sessions.filter((s) => s.id !== id);
           S.logs = S.logs.filter((l) => l.sid !== id);
@@ -2199,6 +2206,7 @@ button:active {transform:scale(.975)}
         e.target.value = "";
       };
       $("#mClr").onclick = async () => {
+        if (window.pk7Mode) { toast("Pengosongan seluruh data tidak tersedia pada V7."); return; }
         if (
           await ask(
             "Hapus SEMUA peserta, sesi, dan data kehadiran? Unduh cadangan dulu jika masih perlu.",
@@ -2295,6 +2303,7 @@ button:active {transform:scale(.975)}
         $("#hScan").onclick = () => go("vScan");
         $("#hPeople").onclick = () => go("vPeople");
         $("#hRun").onclick = () => go("vRun");
+        if (window.v7Maintain) window.v7Maintain();
       }
       function render() {
         const s = sess(),
@@ -2388,13 +2397,19 @@ button:active {transform:scale(.975)}
       };
       const apr = (p) => !!S.approved[p.id] && elig(p);
       const subs = () =>
-        S.cert.subj
+        ((window.pk7Mode && S.sg && Object.values(S.sg).some(x => Object.keys(x || {}).length))
+          ? [...new Set(S.sessions.map(x => lbl(x.name)))] .join('\n')
+          : S.cert.subj)
           .split("\n")
           .map((x) => x.trim())
           .filter(Boolean);
       const gr = (v) => (v >= 85 ? "A" : v >= 75 ? "B" : v >= 65 ? "C" : "D");
       let adm = false;
       function needAdmin(fn) {
+        if (window.pk7Mode) {
+          if (window.pk7Role !== 'admin') { toast('Hanya Admin yang dapat menyetujui sertifikat.'); return; }
+          adm = true; fn(); return;
+        }
         if (adm) {
           fn();
           return;
@@ -2764,5 +2779,6 @@ button:active {transform:scale(.975)}
       render();
       if(CLOUD) cloudInit();
     </script>
+    <script src="v7.js"></script>
   </body>
 </html>

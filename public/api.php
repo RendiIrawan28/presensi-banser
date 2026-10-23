@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 /** Absensi QR Code VPS API — PHP 8.2+ and PDO_SQLITE, same-origin only. */
+require_once dirname(__DIR__) . '/src/v7.php';
 ini_set('display_errors', '0');
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, private');
@@ -179,6 +180,13 @@ function assertAuth(): void
         failure('Sesi login berakhir. Muat ulang dan login kembali.', 401);
     }
     $_SESSION['seen'] = time();
+    if (!empty($_SESSION['user_id']) && $_SESSION['user_id'] !== 'legacy-admin') {
+        $check = db()->prepare('SELECT enabled,role FROM v7_users WHERE id=?');
+        $check->execute([$_SESSION['user_id']]);
+        $record=$check->fetch();
+        if (!$record || !$record['enabled']) { unset($_SESSION['auth']); failure('Akun telah dinonaktifkan.',401); }
+        $_SESSION['role'] = $record['role'];
+    }
 }
 function assertCsrf(): void
 {
@@ -270,13 +278,19 @@ try {
         'samesite' => 'Strict'
     ]);
     session_start();
+    if (str_starts_with((string)($_SERVER['CONTENT_TYPE'] ?? ''),'multipart/form-data')) {
+        assertAuth();assertCsrf();
+        if (!v7Ready(db())) failure('Migrasi V7 belum dijalankan.',503);
+        if (($_POST['action'] ?? '') !== 'v7.materials.upload') failure('Aksi upload tidak dikenal.',404);
+        response(v7Upload(db()));
+    }
     $request = jsonInput();
     $action = (string)($request['action'] ?? '');
     $payload = $request['payload'] ?? [];
     if (!is_array($payload)) failure('Payload tidak valid.');
     if ($action === 'session') {
         $logged = !empty($_SESSION['auth']) && time() - (int)($_SESSION['seen'] ?? 0) <= 14400;
-        response(['authenticated' => $logged, 'csrf' => $logged ? ($_SESSION['csrf'] ?? null) : null]);
+        response(['authenticated' => $logged, 'csrf' => $logged ? ($_SESSION['csrf'] ?? null) : null, 'role' => $logged ? ($_SESSION['role'] ?? 'admin') : null, 'v7' => v7Ready(db())]);
     }
     if ($action === 'login') {
         $username = (string)($payload['username'] ?? '');
@@ -285,27 +299,47 @@ try {
         $db = db();
         $ip = hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
         loginThrottle($db, $ip, strtolower($username));
-        if (!hash_equals((string)$config['username'], $username) || !password_verify($password, (string)$config['password_hash'])) {
+        $found = false;
+        $uid = 'legacy-admin'; $role = 'admin';
+        if (v7Ready($db)) {
+            $row=$db->prepare('SELECT id,role,password_hash,enabled FROM v7_users WHERE username=?');
+            $row->execute([$username]); $user=$row->fetch();
+            if ($user && (int)$user['enabled']===1 && password_verify($password,$user['password_hash'])) {
+                $found=true;$uid=$user['id'];$role=$user['role'];
+            }
+        }
+        if (!$found && hash_equals((string)$config['username'],$username) && password_verify($password,(string)$config['password_hash'])) {
+            $found=true;$uid='legacy-admin';$role='admin';
+        }
+        if (!$found) {
             $db->prepare('INSERT INTO login_failures(ip_key,username,t) VALUES(?,?,?)')->execute([$ip, strtolower($username), time()]);
             failure('Username atau password salah.', 401);
         }
         $db->prepare('DELETE FROM login_failures WHERE ip_key=? AND username=?')->execute([$ip, strtolower($username)]);
         session_regenerate_id(true);
         $_SESSION['auth'] = true;
+        $_SESSION['user_id'] = $uid;
+        $_SESSION['user'] = $username;
+        $_SESSION['role'] = $role;
+        unset($_SESSION['event_id']);
         $_SESSION['seen'] = time();
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
         response(['ok' => true, 'csrf' => $_SESSION['csrf']]);
     }
     assertAuth();
-    if ($action === 'load') response(state(db()));
+    if ($action === 'load') response(v7Ready(db()) ? v7State(db()) : state(db()));
     assertCsrf();
     if ($action === 'logout') {
         $_SESSION = [];
         session_destroy();
         response(['ok' => true]);
     }
-    if ($action === 'commit') response(writeCommit(db(), $payload));
-    if ($action === 'scan') response(writeScan(db(), $payload));
+    if (str_starts_with($action, 'v7.')) {
+        if (!v7Ready(db())) failure('Migrasi V7 belum dijalankan.', 503);
+        response(v7Action(db(), $action, $payload));
+    }
+    if ($action === 'commit') response(v7Ready(db()) ? v7Commit(db(),$payload) : writeCommit(db(), $payload));
+    if ($action === 'scan') response(v7Ready(db()) ? v7Scan(db(),$payload) : writeScan(db(), $payload));
     failure('Aksi tidak dikenal.', 404);
 } catch (PDOException $e) {
     error_log('Absensi DB: ' . $e->getMessage());
