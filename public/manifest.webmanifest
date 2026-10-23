@@ -1,0 +1,24 @@
+{
+  "name": "Absensi QR Code - Panitia",
+  "short_name": "Absensi",
+  "description": "Pencatatan kehadiran kegiatan dengan QR code, tersinkron ke VPS",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#e9f0ec",
+  "theme_color": "#0b5d3b",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
